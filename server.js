@@ -3,7 +3,7 @@ const path = require('path');
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Endpoint seguro — a chave fica no servidor, nunca exposta ao browser
 app.post('/api/extrair-pdf', async (req, res) => {
