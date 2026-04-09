@@ -1,0 +1,12 @@
+{
+  "name": "credito-garantia-aplicacao",
+  "version": "1.0.0",
+  "description": "Dashboard Crédito Garantia Aplicação",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
