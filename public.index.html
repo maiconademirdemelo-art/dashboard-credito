@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Crédito Garantia Aplicação · Simulador</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060d16; --card: #0c1a28; --border: #1a3550;
+    --text: #e2e8f0; --muted: #64829a; --accent: #4a7fa5;
+    --green: #3db87a; --red: #e05252; --yellow: #f5c842; --blue: #5bc4f5;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding: 36px 20px 60px; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  .eyebrow { font-size: 10px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+  h1 { font-family: 'DM Serif Display', serif; font-size: 32px; color: #fff; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 0; }
+  .header-row { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 36px; }
+  .header-text { flex: 1; }
+  .btn-pdf { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 10px 18px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+  .btn-pdf:hover { background: var(--accent); color: #fff; }
+
+  /* ── Upload zone ── */
+  #upload-section { margin-bottom: 32px; }
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: 16px;
+    padding: 48px 32px; text-align: center; cursor: pointer;
+    transition: all 0.25s; background: var(--card);
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: #0f2035; }
+  .drop-icon { font-size: 42px; margin-bottom: 14px; }
+  .drop-title { font-size: 17px; color: #c4dff0; font-weight: 600; margin-bottom: 6px; }
+  .drop-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .btn-upload { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: background 0.2s; }
+  .btn-upload:hover { background: #2b7cb8; }
+  #file-input { display: none; }
+
+  /* ── Loading ── */
+  #loading { display: none; text-align: center; padding: 48px; }
+  .spinner { width: 40px; height: 40px; border: 3px solid #1a3550; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--muted); font-size: 14px; }
+  .loading-sub { color: #3a5a75; font-size: 12px; margin-top: 6px; }
+
+  /* ── Error ── */
+  #error-box { display: none; background: #1e0e0e; border: 1px solid #6b1a1a; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; color: #e05252; font-size: 14px; }
+
+  /* ── Dashboard (hidden until loaded) ── */
+  #dashboard { display: none; }
+
+  .controls { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 28px; }
+  .controls-label { font-size: 10px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 16px; }
+  .sliders { display: flex; gap: 32px; flex-wrap: wrap; }
+  .slider-group { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+  .slider-group label { font-size: 12px; color: var(--muted); }
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  input[type=range] { width: 150px; accent-color: #2b7cb8; cursor: pointer; }
+  .slider-val { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; color: var(--blue); min-width: 52px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .kpi { background: var(--card); border-radius: 10px; padding: 18px 20px; border: 1px solid #1a3550; }
+  .kpi-label { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+  .kpi-value { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; }
+  .kpi-sub { font-size: 11px; color: #3a5a75; margin-top: 4px; }
+
+  .alert { border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; font-size: 14px; }
+  .alert.success { background: #0d2a1a; border: 1px solid #1a6b3a; }
+  .alert.warn    { background: #1e0e0e; border: 1px solid #6b1a1a; }
+  .alert strong  { font-weight: 600; }
+
+  .alert-inline { border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .alert-inline.success { background: #0d2a1a; border: 1px solid #1a6b3a; }
+  .alert-inline.warn    { background: #1e0e0e; border: 1px solid #6b1a1a; }
+
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .chart-card h2 { font-size: 15px; color: #c4dff0; margin-bottom: 4px; font-weight: 600; }
+  .chart-card p  { font-size: 12px; color: #3a5a75; margin-bottom: 20px; }
+  canvas { max-height: 320px; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { border-bottom: 2px solid var(--border); }
+  th { padding: 8px 10px; text-align: right; color: var(--accent); font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid #0f2030; }
+  tbody tr:nth-child(even) { background: #080f18; }
+  tbody tr.crossrow { background: #0d2a1a; }
+  td { padding: 7px 10px; text-align: right; white-space: nowrap; }
+  td.num-mono { font-family: 'DM Mono', monospace; }
+
+  /* info card dos dados extraídos */
+  .info-card { background: #080f18; border: 1px solid #1a3550; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 24px; }
+  .info-item { display: flex; flex-direction: column; gap: 3px; }
+  .info-label { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+  .info-value { font-family: 'DM Mono', monospace; font-size: 14px; color: #c4dff0; font-weight: 500; }
+
+  .btn-novo { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 1px solid #3a5a75; color: #64829a; border-radius: 8px; padding: 8px 16px; font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-bottom: 28px; transition: all 0.2s; }
+  .btn-novo:hover { border-color: var(--accent); color: var(--accent); }
+
+  .disclaimer { background: #080f18; border: 1px solid #1a3550; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+  .disclaimer-title { font-size: 12px; font-weight: 700; color: #f5c842; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+  .disclaimer ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .disclaimer li { font-size: 12px; color: #64829a; line-height: 1.6; padding-left: 12px; border-left: 2px solid #1a3550; }
+  .disclaimer li strong { color: #c4dff0; }
+  .disclaimer a { color: #4a7fa5; text-decoration: underline; }
+  .disc-green { color: #3db87a; font-weight: 600; }
+
+  .footer { text-align: center; font-size: 11px; color: #2a4a65; padding-top: 8px; }
+
+  @media print {
+    .btn-pdf, .controls, .btn-novo, #upload-section { display: none !important; }
+    body { background: #fff !important; color: #000 !important; padding: 10px !important; }
+    .wrap { max-width: 100% !important; }
+    .chart-card { background: #f9f9f9 !important; border: 1px solid #ddd !important; break-inside: avoid; }
+    .kpi { background: #f0f0f0 !important; border: 1px solid #ccc !important; }
+    h1, .eyebrow, .subtitle, .chart-card h2, .chart-card p, th, td, .kpi-value, .kpi-label, .kpi-sub { color: #000 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header-row">
+    <div class="header-text">
+      <div class="eyebrow">SIMULAÇÃO CRÉDITO INVESTIDOR</div>
+      <h1>Manter Aplicado vs Crédito Garantia Aplicação</h1>
+      <p class="subtitle">Carregue o PDF da simulação para gerar o dashboard automaticamente</p>
+    </div>
+    <button class="btn-pdf" onclick="window.print()">🖨️ Salvar como PDF</button>
+  </div>
+
+  <!-- Upload -->
+  <div id="upload-section">
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Arraste o PDF da simulação aqui</div>
+      <div class="drop-sub">ou clique para selecionar o arquivo</div>
+      <button class="btn-upload" onclick="document.getElementById('file-input').click()">Selecionar PDF</button>
+      <input type="file" id="file-input" accept=".pdf"/>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Lendo dados do PDF...</div>
+    <div class="loading-sub">A IA está extraindo as parcelas e taxas da simulação</div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-box"></div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+
+    <button class="btn-novo" onclick="resetar()">← Carregar novo PDF</button>
+
+    <!-- Info dos dados extraídos -->
+    <div class="info-card" id="info-card"></div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="controls-label">⚙ Parâmetros da Aplicação</div>
+      <div class="sliders">
+        <div class="slider-group">
+          <label>CDI (% a.a.)</label>
+          <div class="slider-row">
+            <input type="range" id="sl-cdi" min="8" max="20" step="0.25" value="13.75"/>
+            <span class="slider-val" id="lb-cdi">13.75%</span>
+          </div>
+        </div>
+        <div class="slider-group">
+          <label>% do CDI</label>
+          <div class="slider-row">
+            <input type="range" id="sl-pct" min="80" max="120" step="1" value="110"/>
+            <span class="slider-val" id="lb-pct">110%</span>
+          </div>
+        </div>
+        <div class="slider-group">
+          <label>IR sobre rendimento (%)</label>
+          <div class="slider-row">
+            <input type="range" id="sl-ir" min="0" max="22.5" step="2.5" value="15"/>
+            <span class="slider-val" id="lb-ir">15%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+    <div class="alert" id="alert-box"></div>
+
+    <div class="chart-card">
+      <h2>Juros Acumulados: Pagos × Recebidos</h2>
+      <p>Acumulado mês a mês ao longo das parcelas</p>
+      <canvas id="chartAcum"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h2>Diferença Mensal: Recebido − Pago</h2>
+      <p>Quanto o rendimento da aplicação excede (ou fica abaixo) do custo do crédito a cada mês</p>
+      <div class="alert-inline" id="alert-dif"></div>
+      <canvas id="chartDif"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h2>Evolução do Saldo Aplicado</h2>
+      <p>Saldo crescendo mês a mês com rendimento líquido de IR</p>
+      <canvas id="chartSaldo"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h2>Tabela Detalhada</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Parc.</th><th>Venc.</th>
+              <th>Custo Crédito (mês)</th><th>Rend. Líq. (mês)</th>
+              <th>Dif. Mensal</th><th>Juros Pagos Acum.</th>
+              <th>Juros Rec. Acum.</th><th>Saldo Aplicado</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <div class="disclaimer-title">⚠ Informações e Disclaimers</div>
+      <ul>
+        <li>Simulação realizada em <strong id="disc-data">—</strong>, considerando primeira parcela para <strong id="disc-parc1">—</strong>.</li>
+        <li>Rentabilidade utilizada na simulação da aplicação: <strong id="disc-pct">110% do CDI</strong>.</li>
+        <li>Empréstimo com parcela variável: Juros de <strong>0,35% + CDI a.m.</strong> e pré-fixada <strong>1,49% a.m.</strong></li>
+        <li>Na simulação da parcela está sendo considerada a curva de juros futuro para o período informado (negociação dos títulos futuros negociados na B3 para os próximos meses/anos). Fonte: <a href="https://www2.bmf.com.br" target="_blank">https://www2.bmf.com.br</a>.</li>
+        <li>A simulação da aplicação está considerando a curva de juros futuro para o período informado (negociação dos títulos futuros negociados na B3 para os próximos meses/anos). Fonte: <a href="https://www2.bmf.com.br" target="_blank">https://www2.bmf.com.br</a>.</li>
+        <li><span class="disc-green">Simulação não considera retorno de sobras sobre os juros pagos e sobre os juros recebidos.</span></li>
+        <li>Por se tratar de uma simulação que considera a expectativa de juros futuro, alterações no cenário econômico podem afetar a rentabilidade dos investimentos.</li>
+      </ul>
+    </div>
+    <p class="footer">Simulação baseada em projeções de mercado. Valores podem variar conforme oscilação do CDI.</p>
+  </div>
+
+</div>
+<script>
+/* ── STATE ── */
+let PARCELAS = [];
+let VALOR_LIQUIDO = 0;
+let META = {};
+let chartAcum, chartDif, chartSaldo;
+
+/* ── UTIL ── */
+const fmt  = v => v.toLocaleString('pt-BR', { style:'currency', currency:'BRL', minimumFractionDigits:2 });
+const fmtK = v => 'R$' + (v/1000).toFixed(0) + 'k';
+
+/* ── UPLOAD / DRAG ── */
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) processFile(f); });
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) processFile(fileInput.files[0]); });
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+}
+
+function resetar() {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+  document.getElementById('error-box').style.display = 'none';
+  fileInput.value = '';
+  PARCELAS = []; VALOR_LIQUIDO = 0; META = {};
+}
+
+/* ── PROCESS PDF ── */
+async function processFile(file) {
+  // Accept any file - type check relaxed for Windows compatibility
+  if (!file || file.size === 0) {
+    showError('Arquivo inválido ou vazio.'); return;
+  }
+
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+
+  try {
+    // Convert PDF to base64
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Falha ao ler o arquivo'));
+      r.readAsDataURL(file);
+    });
+
+    // Chama o backend seguro (a chave de API fica no servidor)
+    const response = await fetch('/api/extrair-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdfBase64: base64 })
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || 'Erro ao processar o PDF');
+    }
+
+    const parsed = result.dados;
+
+    if (!parsed.tabela || parsed.tabela.length === 0) {
+      throw new Error('Nenhuma parcela encontrada no PDF.');
+    }
+
+    // Populate state
+    PARCELAS = parsed.tabela;
+    VALOR_LIQUIDO = parsed.valorLiquido || (parsed.valorSolicitado - parsed.iof);
+    META = parsed;
+
+    // Update disclaimer dates
+    const hoje = new Date();
+    const dataSimulacao = hoje.toLocaleDateString('pt-BR');
+    document.getElementById('disc-data').textContent = dataSimulacao;
+    document.getElementById('disc-parc1').textContent = parsed.primeiroVencimento || '—';
+
+    // Update info card
+    document.getElementById('info-card').innerHTML = [
+      { label: 'Cooperado',        value: parsed.cooperado || '—' },
+      { label: 'Valor Líquido',    value: fmt(VALOR_LIQUIDO) },
+      { label: 'Parcelas',         value: parsed.parcelas + 'x' },
+      { label: '1º Vencimento',    value: parsed.primeiroVencimento || '—' },
+      { label: 'Última Parcela',   value: parsed.ultimaParcela || '—' },
+      { label: 'Taxa Operação',    value: (parsed.taxaOperacao || 0.35) + '% a.m. + CDI' },
+      { label: 'IOF',              value: fmt(parsed.iof || 0) },
+    ].map(i => `<div class="info-item"><span class="info-label">${i.label}</span><span class="info-value">${i.value}</span></div>`).join('');
+
+    // Show dashboard
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    // Init sliders
+    ['sl-cdi','sl-pct','sl-ir'].forEach(id => document.getElementById(id).addEventListener('input', render));
+    document.getElementById('sl-pct').addEventListener('input', updateDiscPct);
+    updateDiscPct();
+    render();
+
+  } catch(e) {
+    showError(e.message);
+  }
+}
+
+/* ── CALC ── */
+function buildSerie(txCDI, pctCDI, irAliq) {
+  const txAnual  = (txCDI * pctCDI) / 100 / 100;
+  const txMensal = Math.pow(1 + txAnual, 1/12) - 1;
+  let saldo = VALOR_LIQUIDO, pagosAcum = 0, recAcum = 0;
+  return PARCELAS.map(p => {
+    const custo    = p.juros + p.jurosIdx + p.seguro;
+    const rendBruto = saldo * txMensal;
+    const rendLiq  = rendBruto * (1 - irAliq/100);
+    pagosAcum += custo; recAcum += rendLiq;
+    saldo = saldo * (1 + txMensal*(1-irAliq/100));
+    return { n:p.n, mes:p.venc, custo:+custo.toFixed(2), rendLiq:+rendLiq.toFixed(2),
+      pagosAcum:+pagosAcum.toFixed(2), recAcum:+recAcum.toFixed(2),
+      saldo:+saldo.toFixed(2), dif:+(recAcum-pagosAcum).toFixed(2), difMes:+(rendLiq-custo).toFixed(2) };
+  });
+}
+
+function findCross(serie)       { for(let i=1;i<serie.length;i++) if(serie[i].dif>=0&&serie[i-1].dif<0) return serie[i]; return null; }
+function findCrossMensal(serie) { for(let i=1;i<serie.length;i++) if(serie[i].difMes>=0&&serie[i-1].difMes<0) return serie[i]; return null; }
+
+/* ── RENDER ── */
+function render() {
+  const txCDI  = parseFloat(document.getElementById('sl-cdi').value);
+  const pctCDI = parseFloat(document.getElementById('sl-pct').value);
+  const irAliq = parseFloat(document.getElementById('sl-ir').value);
+  document.getElementById('lb-cdi').textContent = txCDI + '%';
+  document.getElementById('lb-pct').textContent = pctCDI + '%';
+  document.getElementById('lb-ir').textContent  = irAliq + '%';
+
+  const serie       = buildSerie(txCDI, pctCDI, irAliq);
+  const cross       = findCross(serie);
+  const crossMensal = findCrossMensal(serie);
+  const last        = serie[serie.length - 1];
+  const vant        = last.recAcum - last.pagosAcum;
+
+  /* KPIs */
+  document.getElementById('kpis').innerHTML = [
+    { label:'Total Juros Pagos',         val:fmt(last.pagosAcum), color:'#e05252', sub:'custo total do crédito' },
+    { label:'Juros Recebidos (líq. IR)', val:fmt(last.recAcum),   color:'#3db87a', sub:'rendimento da aplicação' },
+    { label: vant>=0?'Vantagem de Manter':'Custo de Oportunidade', val:fmt(Math.abs(vant)), color:vant>=0?'#3db87a':'#e05252', sub:vant>=0?'a favor do investidor':'prejuízo vs resgate' },
+    { label:'Saldo Final da Aplicação',  val:fmt(last.saldo),     color:'#5bc4f5', sub:'após '+PARCELAS.length+' meses' },
+  ].map(k=>`<div class="kpi" style="border-color:${k.color}30"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.val}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+  /* Alert acumulado */
+  const ab = document.getElementById('alert-box');
+  if (cross) {
+    ab.className = 'alert success';
+    ab.innerHTML = `<span style="font-size:18px">✅</span><div>A partir da <strong>parcela ${cross.n} (${cross.mes})</strong> os juros recebidos acumulados superam os juros pagos acumulados.</div>`;
+  } else {
+    ab.className = 'alert warn';
+    ab.innerHTML = `<span style="color:#e05252;font-weight:700">⚠</span><span style="color:#64829a"> Com esses parâmetros, os juros recebidos não superam os juros pagos no período.</span>`;
+  }
+
+  /* Alert mensal */
+  const ad = document.getElementById('alert-dif');
+  if (crossMensal) {
+    ad.className = 'alert-inline success';
+    ad.innerHTML = `<span style="font-size:16px">✅</span><div>A partir de <strong>${crossMensal.mes} (parcela ${crossMensal.n})</strong> o rendimento mensal da aplicação passa a ser maior que o custo mensal do crédito.</div>`;
+  } else {
+    ad.className = 'alert-inline warn';
+    ad.innerHTML = `<span style="color:#e05252;font-weight:700">⚠</span><span style="color:#64829a"> O rendimento mensal não supera o custo do crédito em nenhum mês com esses parâmetros.</span>`;
+  }
+
+  const labels = serie.map(r => r.mes);
+
+  /* Chart 1 */
+  if (chartAcum) chartAcum.destroy();
+  chartAcum = new Chart(document.getElementById('chartAcum'), { type:'line', data:{ labels, datasets:[
+    { label:'Juros Pagos (acum.)',          data:serie.map(r=>r.pagosAcum), borderColor:'#e05252', backgroundColor:'rgba(224,82,82,0.12)', fill:true, tension:0.3, pointRadius:0, borderWidth:2 },
+    { label:'Juros Recebidos líq. (acum.)', data:serie.map(r=>r.recAcum),  borderColor:'#3db87a', backgroundColor:'rgba(61,184,122,0.12)', fill:true, tension:0.3, pointRadius:0, borderWidth:2 },
+  ]}, options: chartOpts(fmtK) });
+
+  /* Chart 2 */
+  if (chartDif) chartDif.destroy();
+  chartDif = new Chart(document.getElementById('chartDif'), { type:'line', data:{ labels, datasets:[{
+    label:'Rendimento − Custo (mês)', data:serie.map(r=>r.difMes),
+    borderColor:'#5bc4f5', backgroundColor:serie.map(r=>r.difMes>=0?'rgba(61,184,122,0.15)':'rgba(224,82,82,0.15)'),
+    fill:true, tension:0.3, pointRadius:0, borderWidth:2
+  }]}, options: chartOpts(v=>'R$'+v.toLocaleString('pt-BR')) });
+
+  /* Chart 3 */
+  if (chartSaldo) chartSaldo.destroy();
+  chartSaldo = new Chart(document.getElementById('chartSaldo'), { type:'line', data:{ labels, datasets:[{
+    label:'Saldo Aplicado', data:serie.map(r=>r.saldo),
+    borderColor:'#f5c842', backgroundColor:'rgba(245,200,66,0.08)',
+    fill:true, tension:0.3, pointRadius:0, borderWidth:2.5
+  }]}, options: chartOpts(fmtK) });
+
+  /* Tabela */
+  document.getElementById('tbl-body').innerHTML = serie.map((r,i) => {
+    const isCross        = cross && r.n === cross.n;
+    const isCrossMensal  = crossMensal && r.n === crossMensal.n;
+    const difColor       = r.difMes>=0 ? '#3db87a':'#e05252';
+    const rowBg          = isCross ? '#0d2a1a' : isCrossMensal ? '#0a2010' : '';
+    return `<tr class="${isCross?'crossrow':''}" style="${rowBg?'background:'+rowBg:''}">
+      <td style="color:${isCross?'#f5c842':isCrossMensal?'#3db87a':'#64829a'}">${r.n}º ${isCross?'⭐':''} ${isCrossMensal?'🟢':''}</td>
+      <td style="color:#4a7fa5">${r.mes}</td>
+      <td class="num-mono" style="color:#e05252">${fmt(r.custo)}</td>
+      <td class="num-mono" style="color:#3db87a">${fmt(r.rendLiq)}</td>
+      <td class="num-mono" style="color:${difColor};font-weight:${r.difMes>=0?600:400}">${fmt(r.difMes)}</td>
+      <td class="num-mono" style="color:#c4dff0">${fmt(r.pagosAcum)}</td>
+      <td class="num-mono" style="color:#c4dff0">${fmt(r.recAcum)}</td>
+      <td class="num-mono" style="color:#f5c842">${fmt(r.saldo)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function tooltipStyle() {
+  return { backgroundColor:'#0f1923', borderColor:'#1e3a5f', borderWidth:1, titleColor:'#94b8d0', bodyColor:'#e2e8f0',
+    callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } };
+}
+
+function chartOpts(yFmt) {
+  return { responsive:true, maintainAspectRatio:true,
+    plugins: { legend:{ labels:{ color:'#64829a', font:{size:12} } }, tooltip: tooltipStyle() },
+    scales: {
+      x: { ticks:{ color:'#4a7fa5', font:{size:11} }, grid:{ color:'#122233' } },
+      y: { ticks:{ color:'#4a7fa5', font:{size:11}, callback: yFmt }, grid:{ color:'#122233' } }
+    }
+  };
+}
+
+function updateDiscPct() {
+  const pct = parseFloat(document.getElementById('sl-pct').value);
+  const el = document.getElementById('disc-pct');
+  if (el) el.textContent = pct + '% do CDI';
+}
+</script>
+</body>
+</html>
