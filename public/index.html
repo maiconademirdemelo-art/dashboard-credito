@@ -287,7 +287,7 @@ function resetar() {
 
 /* ── PROCESS PDF ── */
 async function processFile(file) {
-  if (!file.name.endsWith('.pdf') && file.type !== 'application/pdf') {
+  if (file.type && file.type !== 'application/pdf' && !file.type.includes('pdf')) {
     showError('Por favor, selecione um arquivo PDF.'); return;
   }
 
