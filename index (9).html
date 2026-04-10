@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Crédito com Garantia de Aplicação · Simulador</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #18191c;
+  --surface: #222428;
+  --border: #2e3035;
+  --text: #ededed;
+  --muted: #7c8490;
+  --accent: #4c8bf5;
+  --green: #2ecc8a;
+  --red: #f07070;
+  --gold: #f5c842;
+}
+body { background: var(--bg); color: var(--text); font-family: 'Instrument Sans', sans-serif; min-height: 100vh; }
+.wrap { max-width: 100%; margin: 0; padding: 0 48px 80px; }
+
+/* ── HEADER ── */
+.site-header { border-bottom: 1px solid var(--border); padding: 20px 48px; max-width: 100%; margin: 0; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+.header-btns { display: flex; gap: 10px; }
+.btn { border-radius: 8px; padding: 9px 18px; font-size: 13px; font-family: 'Instrument Sans', sans-serif; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); }
+.btn:hover { border-color: var(--text); color: var(--text); }
+.btn.solid { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.solid:hover { background: #3a72e0; border-color: #3a72e0; }
+
+/* ── HERO ── */
+.hero { padding: 64px 0 80px; border-bottom: 1px solid var(--border); margin-bottom: 80px; text-align: center; display: flex; flex-direction: column; align-items: center; width: 100%; }
+.hero-tag { display: inline-flex; align-items: center; gap: 6px; background: #1e2d47; color: var(--accent); border-radius: 99px; padding: 5px 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 24px; }
+.hero h1 { font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(38px, 5.5vw, 68px); font-weight: 800; line-height: 1.06; letter-spacing: -1.5px; color: var(--text); max-width: 900px; margin-bottom: 20px; text-align: center; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero-sub { font-size: 16px; color: var(--muted); max-width: 860px; line-height: 1.65; margin-bottom: 36px; font-weight: 400; text-align: center; white-space: nowrap; }
+
+/* ── UPLOAD ── */
+#upload-section { margin-bottom: 0; }
+.drop-zone { border: 1.5px dashed var(--border); border-radius: 20px; padding: 48px 60px; text-align: center; background: var(--surface); transition: all 0.2s; width: 100%; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: #1e2d47; }
+.drop-icon { font-size: 48px; margin-bottom: 0; }
+.drop-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 0; letter-spacing: -0.5px; }
+.drop-sub { font-size: 14px; color: var(--muted); margin-bottom: 0; }
+.btn-upload { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px 32px; font-size: 14px; font-family: 'Instrument Sans', sans-serif; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-upload:hover { background: #3a72e0; }
+
+/* ── LOADING ── */
+#loading { display: none; padding: 64px 40px; text-align: center; background: var(--surface); border-radius: 16px; border: 1px solid var(--border); }
+.loading-text { font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+#lsub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+.pw { width: 100%; background: var(--border); border-radius: 99px; height: 4px; overflow: hidden; margin: 0 auto 10px; max-width: 400px; }
+.pb { height: 100%; width: 0%; border-radius: 99px; background: var(--accent); transition: width 0.4s ease; }
+.pl { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+/* ── ERROR ── */
+#error-box { display: none; background: #2b1111; border: 1px solid #4d2020; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; color: var(--red); font-size: 14px; }
+
+/* ── DASHBOARD ── */
+#dashboard { display: none; }
+.btn-novo { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 1.5px solid var(--border); color: var(--muted); border-radius: 8px; padding: 9px 18px; font-size: 13px; font-family: 'Instrument Sans', sans-serif; font-weight: 500; cursor: pointer; margin-bottom: 40px; transition: all 0.15s; }
+.btn-novo:hover { border-color: var(--text); color: var(--text); }
+
+/* ── INFO STRIP ── */
+.info-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 48px; }
+.info-item { background: var(--surface); padding: 20px 24px; }
+
+.info-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+.info-value { font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+
+/* ── SECTION TITLE ── */
+.section-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 6px; color: var(--text); }
+.section-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+
+/* ── CONTROLS ── */
+.controls-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0; margin-bottom: 48px; overflow: hidden; }
+.controls-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; padding: 18px 28px 0; margin-bottom: 4px; }
+.sliders { display: flex; gap: 0; flex-wrap: wrap; width: 100%; }
+.slider-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 180px; padding: 20px 28px; border-right: 1px solid var(--border); }
+  .slider-group:last-child { border-right: none; }
+.slider-group label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
+.slider-row { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.slider-val { font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -1px; }
+
+/* ── KPIS ── */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 48px; }
+.kpi { background: var(--surface); padding: 28px 32px; }
+.kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.kpi-value { font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; line-height: 1; }
+.kpi-sub { font-size: 13px; color: var(--muted); }
+
+/* ── ALERTS ── */
+.alert { border-radius: 10px; padding: 16px 20px; margin-bottom: 32px; display: flex; align-items: flex-start; gap: 12px; font-size: 14px; line-height: 1.5; border: 1px solid; }
+.alert.success { background: #0d2b1e; border-color: #1a4d33; color: var(--green); }
+.alert.warn { background: #2b1111; border-color: #4d2020; color: var(--red); }
+.alert strong { font-weight: 700; color: var(--text); }
+.alert-inline { border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; border: 1px solid; }
+.alert-inline.success { background: #0d2b1e; border-color: #1a4d33; color: var(--green); }
+.alert-inline.warn { background: #2b1111; border-color: #4d2020; color: var(--red); }
+.alert-inline strong { color: var(--text); }
+
+/* ── CHARTS ── */
+.chart-wrap { margin-bottom: 48px; }
+canvas { max-height: 300px; }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: #1e2025; }
+th { padding: 12px 16px; text-align: right; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+th:first-child, th:nth-child(2) { text-align: left; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #2a2d34; }
+tbody tr.crossrow { background: #0d2b1e; }
+tbody tr.crossmensal { background: #0a2018; }
+td { padding: 12px 16px; text-align: right; white-space: nowrap; color: var(--text); }
+td:first-child, td:nth-child(2) { text-align: left; }
+td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+/* ── DISCLAIMER ── */
+.disc-wrap { border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-bottom: 24px; background: var(--surface); }
+.disc-title { font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; }
+.disc-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.disc-list li { font-size: 13px; color: var(--muted); line-height: 1.6; padding-left: 16px; border-left: 2px solid var(--border); }
+.disc-list li strong { color: var(--text); font-weight: 600; }
+.disc-list a { color: var(--accent); }
+.disc-green { color: var(--green); font-weight: 600; }
+.footer { text-align: center; font-size: 12px; color: #444; padding-top: 8px; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 0 0 48px; }
+
+/* ── PDF OVERLAY ── */
+#pdfo { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(24,25,28,0.97); backdrop-filter: blur(10px); flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+#pdfo.on { display: flex; }
+#pdfo .pw { width: 360px; }
+.pot { font-family: 'Bricolage Grotesque', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+.pos { font-size: 14px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .kpis { grid-template-columns: 1fr; }
+  .info-strip { flex-direction: column; }
+  .info-item { border-right: none; border-bottom: 1px solid var(--border); }
+  .info-item:last-child { border-bottom: none; }
+  .hero h1 { font-size: 34px; }
+}
+@media print {
+  .btn, .controls-wrap, .btn-novo, #upload-section { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header style="border-bottom:1px solid var(--border)">
+  <div class="site-header">
+    <div style="display:flex;align-items:center;gap:16px;"><div class="logo">CGA · Simulador</div><div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.5px;background:#1e2d47;border-radius:99px;padding:4px 12px;">✦ Análise de Viabilidade</div></div>
+    <div class="header-btns">
+      <button class="btn" onclick="window.print()">🖨️ PDF Impressão</button>
+      <button class="btn solid" onclick="gerarPDFDigital()">↓ PDF Digital</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero" id="hero-section">
+    <h1>Resgate de Aplicação<br><span style="font-size:0.35em;font-weight:400;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0;letter-spacing:3px;font-family:'Instrument Sans',sans-serif;text-transform:lowercase;"><span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span><span>versus</span><span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span></span><em>Crédito com Garantia</em><br>de Aplicação</h1>
+    <p class="hero-sub">Carregue o PDF da simulação de crédito para gerar a análise completa com gráficos interativos.</p>
+
+    <div id="upload-section" style="width:100%;">
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-icon">📄</div>
+        <div class="drop-title">Arraste o PDF aqui</div>
+        <div class="drop-sub">Simulação de crédito em formato padrão</div>
+        <button class="btn-upload" type="button" onclick="event.stopPropagation(); fileInput.value=''; fileInput.click();">Selecionar PDF</button>
+        <input type="file" id="file-input" accept=".pdf,application/pdf" style="display:none"/>
+      </div>
+    </div>
+
+    <div id="loading">
+      <div class="loading-text">Lendo o PDF...</div>
+      <div id="lsub">Preparando...</div>
+      <div class="pw"><div class="pb" id="upb"></div></div>
+      <div class="pl" id="upl">0%</div>
+    </div>
+  </div>
+
+  <div id="error-box"></div>
+
+  <div id="dashboard">
+    <button class="btn-novo" id="btn-novo">← Nova simulação</button>
+    <div class="info-strip" id="info-card"></div>
+    <hr class="divider">
+
+    <div class="section-title">Parâmetros</div>
+    <p class="section-sub">Ajuste as variáveis para simular diferentes cenários</p>
+    <div class="controls-wrap">
+      <div class="controls-label">Configurações da Aplicação</div>
+      <div class="sliders">
+        <div class="slider-group">
+          <label>CDI ao ano</label>
+          <div class="slider-row">
+            <input type="range" id="sl-cdi" min="8" max="20" step="0.25" value="13.75"/>
+            <span class="slider-val" id="lb-cdi">13,75%</span>
+          </div>
+        </div>
+        <div class="slider-group">
+          <label>Percentual do CDI</label>
+          <div class="slider-row">
+            <input type="range" id="sl-pct" min="80" max="120" step="1" value="110"/>
+            <span class="slider-val" id="lb-pct">110%</span>
+          </div>
+        </div>
+        <div class="slider-group">
+          <label>IR sobre rendimento</label>
+          <div class="slider-row">
+            <input type="range" id="sl-ir" min="0" max="22.5" step="2.5" value="15"/>
+            <span class="slider-val" id="lb-ir">15%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+    <div class="alert" id="alert-box"></div>
+    <hr class="divider">
+
+    <div class="chart-wrap">
+      <div class="section-title">Juros Acumulados</div>
+      <p class="section-sub">Pagos vs. Recebidos ao longo das parcelas</p>
+      <canvas id="chartAcum"></canvas>
+    </div>
+    <hr class="divider">
+
+    <div class="chart-wrap">
+      <div class="section-title">Diferença Mensal</div>
+      <p class="section-sub">Rendimento recebido menos custo pago por mês</p>
+      <div class="alert-inline" id="alert-dif"></div>
+      <canvas id="chartDif"></canvas>
+    </div>
+    <hr class="divider">
+
+    <div class="chart-wrap">
+      <div class="section-title">Saldo Aplicado</div>
+      <p class="section-sub">Crescimento do patrimônio mês a mês</p>
+      <canvas id="chartSaldo"></canvas>
+    </div>
+    <hr class="divider">
+
+    <div class="section-title" style="margin-bottom:6px">Tabela Detalhada</div>
+    <p class="section-sub">Dados completos de cada parcela</p>
+    <div class="tbl-wrap" style="margin-bottom:48px">
+      <table>
+        <thead>
+          <tr>
+            <th>Parc.</th><th>Venc.</th>
+            <th>Custo Crédito</th><th>Rend. Líquido</th>
+            <th>Dif. Mensal</th><th>J. Pagos Acum.</th>
+            <th>J. Rec. Acum.</th><th>Saldo Aplicado</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+
+    <div class="disc-wrap">
+      <div class="disc-title">⚠ Informações e Disclaimers</div>
+      <ul class="disc-list">
+        <li>Simulação realizada em <strong id="disc-data">—</strong>, considerando primeira parcela para <strong id="disc-parc1">—</strong>.</li>
+        <li>Rentabilidade utilizada na simulação: <strong id="disc-pct">110% do CDI</strong>.</li>
+        <li>Empréstimo com parcela variável: Juros de <strong>0,35% + CDI a.m.</strong> e pré-fixada <strong>1,49% a.m.</strong></li>
+        <li>Na simulação da parcela está sendo considerada a curva de juros futuro (negociação dos títulos negociados na B3). Fonte: <a href="https://www2.bmf.com.br" target="_blank">https://www2.bmf.com.br</a>.</li>
+        <li>A simulação da aplicação está considerando a curva de juros futuro. Fonte: <a href="https://www2.bmf.com.br" target="_blank">https://www2.bmf.com.br</a>.</li>
+        <li><span class="disc-green">Simulação não considera retorno de sobras sobre os juros pagos e sobre os juros recebidos.</span></li>
+        <li>Por se tratar de uma simulação baseada em expectativa de juros futuro, alterações no cenário econômico podem afetar a rentabilidade dos investimentos.</li>
+      </ul>
+    </div>
+    <p class="footer">Simulação baseada em projeções de mercado · Valores podem variar conforme oscilação do CDI</p>
+  </div>
+</div>
+
+<div id="pdfo">
+  <div class="pot">Gerando PDF Digital</div>
+  <div class="pw"><div class="pb" id="pdfb"></div></div>
+  <div class="pos" id="pdfs">Iniciando...</div>
+</div>
+
+
+<script>
+/* ── STATE ── */
+let PARCELAS = [];
+let VALOR_LIQUIDO = 0;
+let META = {};
+let chartAcum, chartDif, chartSaldo;
+
+/* ── UTIL ── */
+const fmt  = v => v.toLocaleString('pt-BR', { style:'currency', currency:'BRL', minimumFractionDigits:2 });
+const fmtK = v => 'R$' + (v/1000).toFixed(0) + 'k';
+
+/* ── UPLOAD / DRAG ── */
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) processFile(f); });
+// click via btn-upload
+fileInput.addEventListener('change', function() { var f = this.files && this.files[0]; if (f) { processFile(f); this.value = ''; } });
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+}
+
+function resetar() {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+  document.getElementById('error-box').style.display = 'none';
+  fileInput.value = '';
+  PARCELAS = []; VALOR_LIQUIDO = 0; META = {};
+}
+
+/* ── PROCESS PDF ── */
+async function processFile(file) {
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('error-box').style.display='none';
+  document.getElementById('loading').style.display='block';
+  const sup=(p,m)=>{document.getElementById('upb').style.width=p+'%';document.getElementById('upl').textContent=p+'%';document.getElementById('lsub').textContent=m;};
+  sup(10,'Lendo...'); await new Promise(r=>setTimeout(r,80));
+  try {
+    sup(28,'Convertendo PDF...');
+    // Convert PDF to base64
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Falha ao ler o arquivo'));
+      r.readAsDataURL(file);
+    });
+
+    sup(50,'Enviando...'); await new Promise(r=>setTimeout(r,80));
+    const response = await fetch('/api/extrair-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdfBase64: base64 })
+    });
+
+    sup(78,'Processando...'); const result = await response.json();
+    if (!response.ok || !result.ok) { throw new Error(result.error || 'Erro ao processar o PDF'); }
+    sup(94,'Montando...'); await new Promise(r=>setTimeout(r,150));
+    const parsed = result.dados;
+
+    if (!parsed.tabela || parsed.tabela.length === 0) {
+      throw new Error('Nenhuma parcela encontrada no PDF.');
+    }
+
+    // Populate state
+    PARCELAS = parsed.tabela;
+    VALOR_LIQUIDO = parsed.valorLiquido || (parsed.valorSolicitado - parsed.iof);
+    META = parsed;
+
+    // Update disclaimer dates
+    const hoje = new Date();
+    const dataSimulacao = hoje.toLocaleDateString('pt-BR');
+    document.getElementById('disc-data').textContent = dataSimulacao;
+    document.getElementById('disc-parc1').textContent = parsed.primeiroVencimento || '—';
+
+    // Update info card
+    document.getElementById('info-card').innerHTML = [
+      { label: 'Valor Líquido',    value: fmt(VALOR_LIQUIDO) },
+      { label: 'Parcelas',         value: parsed.parcelas + 'x' },
+      { label: '1º Vencimento',    value: parsed.primeiroVencimento || '—' },
+      { label: 'Última Parcela',   value: parsed.ultimaParcela || '—' },
+      { label: 'Taxa Operação',    value: (parsed.taxaOperacao || 0.35) + '% a.m. + CDI' },
+      { label: 'IOF',              value: fmt(parsed.iof || 0) },
+    ].map(i => `<div class="info-item"><span class="info-label">${i.label}</span><span class="info-value">${i.value}</span></div>`).join('');
+
+    sup(100,'Concluído!'); await new Promise(r=>setTimeout(r,350));
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+
+    // Init sliders
+    ['sl-cdi','sl-pct','sl-ir'].forEach(id => document.getElementById(id).addEventListener('input', render));
+    document.getElementById('sl-pct').addEventListener('input', updateDiscPct);
+    updateDiscPct();
+    render();
+
+  } catch(e) {
+    showError(e.message);
+  }
+}
+
+/* ── CALC ── */
+function buildSerie(txCDI, pctCDI, irAliq) {
+  const txAnual  = (txCDI * pctCDI) / 100 / 100;
+  const txMensal = Math.pow(1 + txAnual, 1/12) - 1;
+  let saldo = VALOR_LIQUIDO, pagosAcum = 0, recAcum = 0;
+  return PARCELAS.map(p => {
+    const custo    = p.juros + p.jurosIdx + p.seguro;
+    const rendBruto = saldo * txMensal;
+    const rendLiq  = rendBruto * (1 - irAliq/100);
+    pagosAcum += custo; recAcum += rendLiq;
+    saldo = saldo * (1 + txMensal*(1-irAliq/100));
+    return { n:p.n, mes:p.venc, custo:+custo.toFixed(2), rendLiq:+rendLiq.toFixed(2),
+      pagosAcum:+pagosAcum.toFixed(2), recAcum:+recAcum.toFixed(2),
+      saldo:+saldo.toFixed(2), dif:+(recAcum-pagosAcum).toFixed(2), difMes:+(rendLiq-custo).toFixed(2) };
+  });
+}
+
+function findCross(serie)       { for(let i=1;i<serie.length;i++) if(serie[i].dif>=0&&serie[i-1].dif<0) return serie[i]; return null; }
+function findCrossMensal(serie) { for(let i=1;i<serie.length;i++) if(serie[i].difMes>=0&&serie[i-1].difMes<0) return serie[i]; return null; }
+
+/* ── RENDER ── */
+function render() {
+  const txCDI  = parseFloat(document.getElementById('sl-cdi').value);
+  const pctCDI = parseFloat(document.getElementById('sl-pct').value);
+  const irAliq = parseFloat(document.getElementById('sl-ir').value);
+  document.getElementById('lb-cdi').textContent = txCDI + '%';
+  document.getElementById('lb-pct').textContent = pctCDI + '%';
+  document.getElementById('lb-ir').textContent  = irAliq + '%';
+
+  const serie       = buildSerie(txCDI, pctCDI, irAliq);
+  const cross       = findCross(serie);
+  const crossMensal = findCrossMensal(serie);
+  const last        = serie[serie.length - 1];
+  const vant        = last.recAcum - last.pagosAcum;
+
+  /* KPIs */
+  document.getElementById('kpis').innerHTML = [
+    { label:'Total Juros Pagos',         val:fmt(last.pagosAcum), color:'#f07070', sub:'custo total do crédito' },
+    { label:'Juros Recebidos (líq. IR)', val:fmt(last.recAcum),   color:'#2ecc8a', sub:'rendimento da aplicação' },
+    { label: vant>=0?'Vantagem de Manter':'Custo de Oportunidade', val:fmt(Math.abs(vant)), color:vant>=0?'#3db87a':'#e05252', sub:vant>=0?'a favor do investidor':'prejuízo vs resgate' },
+    { label:'Saldo Final da Aplicação',  val:fmt(last.saldo),     color:'#4c8bf5', sub:'após '+PARCELAS.length+' meses' },
+  ].map(k=>`<div class="kpi" style="border-color:${k.color}30"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.val}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+  /* Alert acumulado */
+  const ab = document.getElementById('alert-box');
+  if (cross) {
+    ab.className = 'alert success';
+    ab.innerHTML = `<span style="font-size:18px">✅</span><div>A partir da <strong>parcela ${cross.n} (${cross.mes})</strong> os juros recebidos acumulados superam os juros pagos acumulados.</div>`;
+  } else {
+    ab.className = 'alert warn';
+    ab.innerHTML = `<span style="color:#e05252;font-weight:700">⚠</span><span style="color:#64829a"> Com esses parâmetros, os juros recebidos não superam os juros pagos no período.</span>`;
+  }
+
+  /* Alert mensal */
+  const ad = document.getElementById('alert-dif');
+  if (crossMensal) {
+    ad.className = 'alert-inline success';
+    ad.innerHTML = `<span style="font-size:16px">✅</span><div>A partir de <strong>${crossMensal.mes} (parcela ${crossMensal.n})</strong> o rendimento mensal da aplicação passa a ser maior que o custo mensal do crédito.</div>`;
+  } else {
+    ad.className = 'alert-inline warn';
+    ad.innerHTML = `<span style="color:#e05252;font-weight:700">⚠</span><span style="color:#64829a"> O rendimento mensal não supera o custo do crédito em nenhum mês com esses parâmetros.</span>`;
+  }
+
+  const labels = serie.map(r => r.mes);
+
+  /* Chart 1 */
+  if (chartAcum) chartAcum.destroy();
+  chartAcum = new Chart(document.getElementById('chartAcum'), { type:'line', data:{ labels, datasets:[
+    { label:'Juros Pagos (acum.)',          data:serie.map(r=>r.pagosAcum), borderColor:'#f07070', backgroundColor:'rgba(240,112,112,0.10)', fill:true, tension:0.3, pointRadius:0, borderWidth:2 },
+    { label:'Juros Recebidos líq. (acum.)', data:serie.map(r=>r.recAcum),  borderColor:'#2ecc8a', backgroundColor:'rgba(46,204,138,0.10)', fill:true, tension:0.3, pointRadius:0, borderWidth:2 },
+  ]}, options: chartOpts(fmtK) });
+
+  /* Chart 2 */
+  if (chartDif) chartDif.destroy();
+  chartDif = new Chart(document.getElementById('chartDif'), { type:'line', data:{ labels, datasets:[{
+    label:'Rendimento − Custo (mês)', data:serie.map(r=>r.difMes),
+    borderColor:'#4c8bf5', backgroundColor:serie.map(r=>r.difMes>=0?'rgba(46,204,138,0.10)':'rgba(240,112,112,0.10)'),
+    fill:true, tension:0.3, pointRadius:0, borderWidth:2
+  }]}, options: chartOpts(v=>'R$'+v.toLocaleString('pt-BR')) });
+
+  /* Chart 3 */
+  if (chartSaldo) chartSaldo.destroy();
+  chartSaldo = new Chart(document.getElementById('chartSaldo'), { type:'line', data:{ labels, datasets:[{
+    label:'Saldo Aplicado', data:serie.map(r=>r.saldo),
+    borderColor:'#f5c842', backgroundColor:'rgba(245,200,66,0.07)',
+    fill:true, tension:0.3, pointRadius:0, borderWidth:2.5
+  }]}, options: chartOpts(fmtK) });
+
+  /* Tabela */
+  document.getElementById('tbl-body').innerHTML = serie.map((r,i) => {
+    const isCross        = cross && r.n === cross.n;
+    const isCrossMensal  = crossMensal && r.n === crossMensal.n;
+    const difColor       = r.difMes>=0 ? '#3db87a':'#e05252';
+    const rowBg          = isCross ? '#0d2a1a' : isCrossMensal ? '#0a2010' : '';
+    return `<tr class="${isCross?'crossrow':''}" style="${rowBg?'background:'+rowBg:''}">
+      <td style="color:${isCross?'#f5c842':isCrossMensal?'#3db87a':'#64829a'}">${r.n}º ${isCross?'⭐':''} ${isCrossMensal?'🟢':''}</td>
+      <td style="color:#4a7fa5">${r.mes}</td>
+      <td class="num-mono" style="color:#e05252">${fmt(r.custo)}</td>
+      <td class="num-mono" style="color:#3db87a">${fmt(r.rendLiq)}</td>
+      <td class="num-mono" style="color:${difColor};font-weight:${r.difMes>=0?600:400}">${fmt(r.difMes)}</td>
+      <td class="num-mono" style="color:#c4dff0">${fmt(r.pagosAcum)}</td>
+      <td class="num-mono" style="color:#c4dff0">${fmt(r.recAcum)}</td>
+      <td class="num-mono" style="color:#f5c842">${fmt(r.saldo)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function tooltipStyle() {
+  return { backgroundColor:'#222428', borderColor:'#2e3035', borderWidth:1, titleColor:'#94b8d0', bodyColor:'#e2e8f0',
+    callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } };
+}
+
+function chartOpts(yFmt) {
+  return { responsive:true, maintainAspectRatio:true,
+    plugins: { legend:{ labels:{ color:'#7c8490', font:{size:12} } }, tooltip: tooltipStyle() },
+    scales: {
+      x: { ticks:{ color:'#555c68', font:{size:11} }, grid:{ color:'#252830' } },
+      y: { ticks:{ color:'#555c68', font:{size:11}, callback: yFmt }, grid:{ color:'#252830' } }
+    }
+  };
+}
+
+function updateDiscPct() {
+  const pct = parseFloat(document.getElementById('sl-pct').value);
+  const el = document.getElementById('disc-pct');
+  if (el) el.textContent = pct + '% do CDI';
+}
+async function gerarPDFDigital() {
+  const ov=document.getElementById('pdfo'),bar=document.getElementById('pdfb'),sub=document.getElementById('pdfs');
+  const sp=(p,m)=>{bar.style.width=p+'%';sub.textContent=m;};
+  ov.classList.add('on'); sp(5,'Carregando bibliotecas...');
+  try {
+    if(typeof html2canvas==='undefined'){await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+    if(typeof window.jspdf==='undefined'){await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+    sp(20,'Preparando...'); await new Promise(r=>setTimeout(r,150));
+
+    // Substituir sliders por texto estático para o html2canvas capturar corretamente
+    const cdi  = document.getElementById('sl-cdi').value;
+    const pct  = document.getElementById('sl-pct').value;
+    const ir   = document.getElementById('sl-ir').value;
+    const ctrlDiv = document.querySelector('.controls');
+    const ctrlOriginal = ctrlDiv ? ctrlDiv.innerHTML : '';
+    if (ctrlDiv) {
+      ctrlDiv.innerHTML = '<div style="padding:8px 0;display:flex;gap:32px;flex-wrap:wrap;">'
+        + '<div style="font-size:13px;color:#64829a;">CDI: <strong style="color:#5bc4f5;font-family:monospace">' + cdi + '%</strong></div>'
+        + '<div style="font-size:13px;color:#64829a;">% CDI: <strong style="color:#5bc4f5;font-family:monospace">' + pct + '%</strong></div>'
+        + '<div style="font-size:13px;color:#64829a;">IR: <strong style="color:#5bc4f5;font-family:monospace">' + ir + '%</strong></div>'
+        + '</div>';
+    }
+
+    // Ocultar botões de navegação
+    const bn=document.querySelector('.btn-novo'); if(bn) bn.style.display='none';
+    const bpdf=document.getElementById('btn-pdf-digital'); if(bpdf) bpdf.style.display='none';
+
+    sp(40,'Capturando layout...'); await new Promise(r=>setTimeout(r,300));
+
+    const dashboard = document.getElementById('dashboard');
+    const cv = await html2canvas(dashboard, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#060d16',
+      logging: false,
+      windowWidth: dashboard.scrollWidth,
+      windowHeight: dashboard.scrollHeight
+    });
+
+    // Restaurar estado original
+    if(ctrlDiv && ctrlOriginal) ctrlDiv.innerHTML = ctrlOriginal;
+    if(bn) bn.style.display='';
+    if(bpdf) bpdf.style.display='';
+
+    sp(70,'Gerando PDF...'); await new Promise(r=>setTimeout(r,150));
+
+    const {jsPDF} = window.jspdf;
+    // A4 completo sem margens: 210x297mm
+    const A4w = 210, A4h = 297;
+    const imgRatio = cv.width / cv.height;
+    const a4Ratio  = A4w / A4h;
+    let iw, ih, ix, iy;
+    if (imgRatio > a4Ratio) {
+      // imagem mais larga — ajusta pela largura
+      iw = A4w; ih = A4w / imgRatio; ix = 0; iy = (A4h - ih) / 2;
+    } else {
+      // imagem mais alta — ajusta pela altura
+      ih = A4h; iw = A4h * imgRatio; iy = 0; ix = (A4w - iw) / 2;
+    }
+    const pdf = new jsPDF({orientation: ih > iw ? 'p' : 'l', unit:'mm', format:'a4'});
+    pdf.setFillColor(24, 25, 28);
+    pdf.rect(0, 0, A4w, A4h, 'F');
+    pdf.addImage(cv.toDataURL('image/jpeg',0.95),'JPEG', ix, iy, iw, ih);
+
+    sp(90,'Finalizando...'); await new Promise(r=>setTimeout(r,250));
+    pdf.save('simulacao-credito-garantia.pdf');
+    sp(100,'PDF gerado!'); await new Promise(r=>setTimeout(r,800));
+  } catch(e) { sp(100,'Erro: '+e.message); await new Promise(r=>setTimeout(r,2200)); }
+  finally { ov.classList.remove('on'); bar.style.width='0%'; sub.textContent='Iniciando...'; }
+}
+</script>
+</body>
+</html>
